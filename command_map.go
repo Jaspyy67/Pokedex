@@ -1,67 +1,42 @@
 package main
 
 import (
-	"encoding/json"
+	"errors"
 	"fmt"
-	"io"
-	"net/http"
 )
 
-type pokedex struct {
-	Next     string
-	Previous string
-}
-
-var pokedexData pokedex
-
-func commandMap(url string) (pokedex, error) {
-	resp, err := http.Get(pokeUrl)
+func commandMapf(cfg *config) error {
+	locationsResp, err := cfg.pokeapiClient.ListLocations(cfg.nextLocationsURL)
 	if err != nil {
-		return pokedex{}, fmt.Errorf("failed to fetch location areas: %v", err)
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return pokedex{}, fmt.Errorf("failed to read response body: %v", err)
+		return err
 	}
 
-	var loc location
-	err = json.Unmarshal(body, &loc)
-	if err != nil {
-		return pokedex{}, fmt.Errorf("failed to unmarshal JSON: %v", err)
-	}
+	cfg.nextLocationsURL = locationsResp.Next
+	cfg.prevLocationsURL = locationsResp.Previous
 
-	for _, result := range loc.Results {
-		fmt.Println(result.Name)
-	}
-
-	return pokedex{
-		Next:     loc.Next,
-		Previous: loc.Previous,
-	}, nil
-}
-
-func commandMapf() error {
-	if pokedexData.Next == "" {
-		return fmt.Errorf("No next page available")
-	}
-	var err error
-	pokedexData, err = commandMap(pokedexData.Next)
-	if err != nil {
-		return fmt.Errorf("failed to execute mapb: %v", err)
+	for _, loc := range locationsResp.Results {
+		fmt.Println(loc.Name)
 	}
 	return nil
 }
 
-func commandMapb() error {
-	if pokedexData.Previous == "" {
-		return fmt.Errorf("No previous page available")
+func commandMapb(cfg *config) error {
+	if cfg.prevLocationsURL == nil {
+		return errors.New("you are on the first page")
 	}
-	var err error
-	pokedexData, err = commandMap(pokedexData.Previous)
+
+	locationsResp, err := cfg.pokeapiClient.ListLocations(cfg.prevLocationsURL)
 	if err != nil {
-		return fmt.Errorf("failed to execute mapb: %v", err)
+		return err
 	}
+
+	cfg.nextLocationsURL = locationsResp.Next
+	cfg.prevLocationsURL = locationsResp.Previous
+
+	for _, loc := range locationsResp.Results {
+		fmt.Println(loc.Name)
+	}
+
 	return nil
+
 }

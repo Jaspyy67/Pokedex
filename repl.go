@@ -15,7 +15,7 @@ type config struct {
 	prevLocationsURL *string
 }
 
-func startRepl() {
+func startRepl(cfg *config) {
 	reader := bufio.NewScanner(os.Stdin)
 
 	for {
@@ -30,7 +30,7 @@ func startRepl() {
 		commandName := words[0]
 		command, exists := getCommands()[commandName]
 		if exists {
-			err := command.callback()
+			err := command.callback(cfg)
 			if err != nil {
 				fmt.Println(err)
 			}
@@ -51,7 +51,7 @@ func cleanInput(text string) []string {
 type cliCommand struct {
 	name        string
 	description string
-	callback    func() error
+	callback    func(*config) error
 }
 
 func getCommands() map[string]cliCommand {
@@ -68,12 +68,12 @@ func getCommands() map[string]cliCommand {
 		},
 		"mapf": {
 			name:        "mapf",
-			description: "Shows the next 20 locations",
+			description: "Shows the next location",
 			callback:    commandMapf,
 		},
 		"mapb": {
 			name:        "mapb",
-			description: "Shows the previous 20 locations",
+			description: "Shows the previous location",
 			callback:    commandMapb,
 		},
 	}
